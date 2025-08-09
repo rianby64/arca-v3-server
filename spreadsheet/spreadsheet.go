@@ -16,8 +16,8 @@ type Spreadsheet struct {
 	client        *sheets.Service
 	spreadsheetID string
 
-	materials models.Materials
-	// areasMaterials models.AreasMaterials
+	materials      models.Materials
+	areasMaterials models.AreasMaterials
 	// areasKeys      models.AreasKeys
 	// relations      models.Relations
 }

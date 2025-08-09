@@ -10,7 +10,7 @@ type Material struct {
 type Materials []*Material
 
 type AreaMaterials struct {
-	Name      string    `json:"name"`
+	Area      string    `json:"name"`
 	Materials Materials `json:"materials"`
 }
 
