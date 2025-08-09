@@ -3,6 +3,7 @@ module arca3
 go 1.24.5
 
 require (
+	github.com/caarlos0/env/v6 v6.10.1
 	github.com/pkg/errors v0.9.1
 	google.golang.org/api v0.246.0
 )

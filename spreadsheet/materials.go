@@ -10,7 +10,7 @@ import (
 
 func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 	result, err := s.client.Spreadsheets.
-		Get(spreadsheetID).
+		Get(s.spreadsheetID).
 		Context(ctx).
 		Ranges("Materials!A2:O").
 		Fields("*").

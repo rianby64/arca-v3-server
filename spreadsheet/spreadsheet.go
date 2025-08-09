@@ -12,13 +12,9 @@ import (
 	"arca3/models"
 )
 
-const (
-	spreadsheetID   = "1KAhQuVfNvvsZkEeOcjhrq0zLLQHPq9gNwu5Dpj_VoOY"
-	credentialsPath = "arca-v2-account.json"
-)
-
 type Spreadsheet struct {
-	client *sheets.Service
+	client        *sheets.Service
+	spreadsheetID string
 
 	materials models.Materials
 	// areasMaterials models.AreasMaterials
@@ -26,14 +22,15 @@ type Spreadsheet struct {
 	// relations      models.Relations
 }
 
-func New(ctx context.Context) *Spreadsheet {
+func New(ctx context.Context, credentialsPath, spreadsheetID string) *Spreadsheet {
 	client, err := sheets.NewService(ctx, option.WithCredentialsFile(credentialsPath))
 	if err != nil {
 		log.Fatalf("Unable to create Sheets service: %v", err)
 	}
 
 	return &Spreadsheet{
-		client: client,
+		client:        client,
+		spreadsheetID: spreadsheetID,
 	}
 }
 
