@@ -8,16 +8,23 @@ import (
 	"arca3/models"
 )
 
-func (s *Spreadsheet) getAreasKeys(ctx context.Context) error {
+func (s *Spreadsheet) GetAreasKeys(ctx context.Context) error {
+	if s.areas == nil {
+		if err := s.GetAreas(ctx); err != nil {
+			return errors.Wrap(err, "Unable to get areas")
+		}
+	}
+
+	ranges := "AREAS_KEYS!A2:C"
 	result, err := s.client.Spreadsheets.
 		Get(s.spreadsheetID).
 		Context(ctx).
-		Ranges("AREAS_KEYS!A2:C").
+		Ranges(ranges).
 		Fields("*").
 		IncludeGridData(true).
 		Do()
 	if err != nil {
-		return errors.Wrap(err, "Unable to retrieve spreadsheet")
+		return errors.Wrapf(err, "Unable to retrieve spreadsheet %s", ranges)
 	}
 
 	areasKeys := make(models.AreasKeys, 0, len(result.Sheets[0].Data[0].RowData))
@@ -29,8 +36,8 @@ func (s *Spreadsheet) getAreasKeys(ctx context.Context) error {
 			areaExternalValue *string
 			keynoteValue      *string
 
-			areaInternal string
-			areaExternal string
+			areaInternal *models.Area
+			areaExternal *models.Area
 			keynote      string
 		)
 
@@ -47,11 +54,19 @@ func (s *Spreadsheet) getAreasKeys(ctx context.Context) error {
 		}
 
 		if areaInternalValue != nil {
-			areaInternal = *areaInternalValue
+			area, err := s.findArea(*areaInternalValue)
+			if err != nil {
+				return err
+			}
+			areaInternal = area
 		}
 
 		if areaExternalValue != nil {
-			areaExternal = *areaExternalValue
+			area, err := s.findArea(*areaExternalValue)
+			if err != nil {
+				return err
+			}
+			areaExternal = area
 		}
 
 		if keynoteValue != nil {
@@ -68,4 +83,32 @@ func (s *Spreadsheet) getAreasKeys(ctx context.Context) error {
 	s.areasKeys = areasKeys
 
 	return nil
+}
+
+func (s *Spreadsheet) findArea(name string) (*models.Area, error) {
+	if s.areas == nil {
+		return nil, models.ErrUnavailable
+	}
+
+	for _, area := range s.areas {
+		if area.Name == name {
+			return area, nil
+		}
+	}
+
+	return nil, errors.Wrapf(models.ErrNotFound, "area %s", name)
+}
+
+func (s *Spreadsheet) findMaterial(name string) (*models.Material, error) {
+	if s.materials == nil {
+		return nil, models.ErrUnavailable
+	}
+
+	for _, material := range s.materials {
+		if material.Name == name {
+			return material, nil
+		}
+	}
+
+	return nil, errors.Wrapf(models.ErrNotFound, "material %s", name)
 }

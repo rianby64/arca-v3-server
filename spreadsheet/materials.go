@@ -9,15 +9,16 @@ import (
 )
 
 func (s *Spreadsheet) getMaterials(ctx context.Context) error {
+	ranges := "MATERIALS!A2:O"
 	result, err := s.client.Spreadsheets.
 		Get(s.spreadsheetID).
 		Context(ctx).
-		Ranges("MATERIALS!A2:O").
+		Ranges(ranges).
 		Fields("*").
 		IncludeGridData(true).
 		Do()
 	if err != nil {
-		return errors.Wrap(err, "Unable to retrieve spreadsheet")
+		return errors.Wrapf(err, "Unable to retrieve spreadsheet %s", ranges)
 	}
 
 	materials := make(models.Materials, 0, len(result.Sheets[0].Data[0].RowData))

@@ -8,22 +8,23 @@ import (
 	"arca3/models"
 )
 
-func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
+func (s *Spreadsheet) GetAreasMaterials(ctx context.Context) error {
 	if s.materials == nil {
 		if err := s.getMaterials(ctx); err != nil {
 			return errors.Wrap(err, "Unable to get materials")
 		}
 	}
 
+	ranges := "AREAS_MATERIALS!A2:B"
 	result, err := s.client.Spreadsheets.
 		Get(s.spreadsheetID).
 		Context(ctx).
-		Ranges("AREAS_MATERIALS!A2:B").
+		Ranges(ranges).
 		Fields("*").
 		IncludeGridData(true).
 		Do()
 	if err != nil {
-		return errors.Wrap(err, "Unable to retrieve spreadsheet")
+		return errors.Wrapf(err, "Unable to retrieve spreadsheet %s", ranges)
 	}
 
 	areasMaterialsMap := map[string]*models.AreaMaterials{}
@@ -35,7 +36,7 @@ func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
 			materialValue *string
 
 			material *models.Material
-			area     string
+			area     *models.Area
 		)
 
 		if len(row.Values) > 0 && row.Values[0] != nil && row.Values[0].EffectiveValue != nil && row.Values[0].EffectiveValue.StringValue != nil {
@@ -47,22 +48,21 @@ func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
 		}
 
 		if materialValue != nil {
-			for _, m := range s.materials {
-				if m.Name == *materialValue {
-					material = m
-					break
-				}
+			materialFound, err := s.findMaterial(*materialValue)
+			if err != nil {
+				return err
 			}
+			material = materialFound
 		}
 
 		if areaValue != nil {
-			area = *areaValue
+			area = &models.Area{Name: *areaValue}
 		}
 
-		if item, ok := areasMaterialsMap[area]; ok {
+		if item, ok := areasMaterialsMap[area.Name]; ok {
 			item.Materials = append(item.Materials, material)
 		} else {
-			areasMaterialsMap[area] = &models.AreaMaterials{
+			areasMaterialsMap[area.Name] = &models.AreaMaterials{
 				Area:      area,
 				Materials: models.Materials{material},
 			}

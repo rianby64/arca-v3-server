@@ -15,6 +15,7 @@ type Spreadsheet struct {
 	spreadsheetID string
 
 	materials      models.Materials
+	areas          models.Areas
 	areasMaterials models.AreasMaterials
 	areasKeys      models.AreasKeys
 	// relations      models.Relations
