@@ -2,8 +2,11 @@ package spreadsheet
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"log"
 
+	"github.com/pkg/errors"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 
@@ -33,15 +36,38 @@ func New(ctx context.Context, credentialsPath, spreadsheetID string) *Spreadshee
 	}
 }
 
-// func (s *Spreadsheet) GetMaterials(ctx context.Context) ([]byte, error) {
-// 	if err := s.getMaterials(ctx); err != nil {
-// 		return nil, err
-// 	}
+func (s *Spreadsheet) ReadAllTo(ctx context.Context, dst io.Writer) error {
+	if s.materials == nil {
+		if err := s.getMaterials(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read materials from spreadsheet")
+		}
+	}
+	if s.areas == nil {
+		if err := s.getAreas(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read areas from spreadsheet")
+		}
+	}
+	if s.areasMaterials == nil {
+		if err := s.getAreasMaterials(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read areas materials from spreadsheet")
+		}
+	}
+	if s.areasKeys == nil {
+		if err := s.getAreasKeys(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read areas keys from spreadsheet")
+		}
+	}
 
-// 	data, err := json.Marshal(s.materials)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "Unable to marshal materials to JSON")
-// 	}
+	allEntries := map[string]any{
+		"materials":       s.materials,
+		"areas":           s.areas,
+		"areas_materials": s.areasMaterials,
+		"areas_keys":      s.areasKeys,
+	}
 
-// 	return data, nil
-// }
+	if err := json.NewEncoder(dst).Encode(allEntries); err != nil {
+		return errors.Wrap(err, "Unable to encode all entries to JSON")
+	}
+
+	return nil
+}

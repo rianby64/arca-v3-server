@@ -8,9 +8,9 @@ import (
 	"arca3/models"
 )
 
-func (s *Spreadsheet) GetAreasKeys(ctx context.Context) error {
+func (s *Spreadsheet) getAreasKeys(ctx context.Context) error {
 	if s.areas == nil {
-		if err := s.GetAreas(ctx); err != nil {
+		if err := s.getAreas(ctx); err != nil {
 			return errors.Wrap(err, "Unable to get areas")
 		}
 	}

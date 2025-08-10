@@ -9,11 +9,15 @@ import (
 type Config struct {
 	SpreadsheetID          string `env:"SPREADSHEET_ID,required"`
 	ServiceCredentialsPath string `env:"SERVICE_CREDENTIALS_PATH,required"`
+
+	ServerAddress string `env:"SERVER_ADDRESS,required"`
 }
 
 func showConfig(cfg *Config) {
-	log.Printf("SPREADSHEET_ID=%s", cfg.SpreadsheetID)
-	log.Printf("SERVICE_CREDENTIALS_PATH=%s", cfg.ServiceCredentialsPath)
+	log.Printf("Configuration loaded:")
+	log.Printf("SPREADSHEET_ID\t\t= %s", cfg.SpreadsheetID)
+	log.Printf("SERVICE_CREDENTIALS_PATH\t= %s", cfg.ServiceCredentialsPath)
+	log.Printf("SERVER_ADDRESS\t\t= %s", cfg.ServerAddress)
 }
 
 func LoadConfig() *Config {

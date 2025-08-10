@@ -8,7 +8,7 @@ import (
 	"arca3/models"
 )
 
-func (s *Spreadsheet) GetAreasMaterials(ctx context.Context) error {
+func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
 	if s.materials == nil {
 		if err := s.getMaterials(ctx); err != nil {
 			return errors.Wrap(err, "Unable to get materials")
@@ -59,13 +59,16 @@ func (s *Spreadsheet) GetAreasMaterials(ctx context.Context) error {
 			area = &models.Area{Name: *areaValue}
 		}
 
-		if item, ok := areasMaterialsMap[area.Name]; ok {
-			item.Materials = append(item.Materials, material)
+		if areaMaterial, ok := areasMaterialsMap[area.Name]; ok {
+			areaMaterial.Materials = append(areaMaterial.Materials, material)
 		} else {
-			areasMaterialsMap[area.Name] = &models.AreaMaterials{
-				Area:      area,
-				Materials: models.Materials{material},
+			newAreaMaterial := &models.AreaMaterials{
+				Area: area,
 			}
+			if material != nil {
+				newAreaMaterial.Materials = append(newAreaMaterial.Materials, material)
+			}
+			areasMaterialsMap[area.Name] = newAreaMaterial
 		}
 
 	}

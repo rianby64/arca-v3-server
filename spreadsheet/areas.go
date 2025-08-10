@@ -8,7 +8,7 @@ import (
 	"arca3/models"
 )
 
-func (s *Spreadsheet) GetAreas(ctx context.Context) error {
+func (s *Spreadsheet) getAreas(ctx context.Context) error {
 	ranges := "AREAS!A2:A"
 	result, err := s.client.Spreadsheets.
 		Get(s.spreadsheetID).
