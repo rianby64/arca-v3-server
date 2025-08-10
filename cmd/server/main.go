@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -39,7 +39,9 @@ func main() {
 
 	defer cancelShutdown()
 
+	log.Println("Received shutdown signal, shutting down server...")
 	server.Shutdown(ctxShutdown)
+	log.Println("Server gracefully stopped")
 }
 
 func launchServer(env *config.Config, spreadsheet *spreadsheet.Spreadsheet) *http.Server {
@@ -57,7 +59,8 @@ func launchServer(env *config.Config, spreadsheet *spreadsheet.Spreadsheet) *htt
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("Error listening and serving: %v\n", err)
+			log.Printf("Error listening and serving: %v\n", err)
+
 			return
 		}
 	}()
