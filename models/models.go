@@ -17,8 +17,9 @@ type AreaMaterials struct {
 type AreasMaterials []*AreaMaterials
 
 type AreaKey struct {
-	Area    string `json:"area"`
-	Keynote string `json:"keynote"`
+	AreaInternal string `json:"area_internal"`
+	AreaExternal string `json:"area_external"`
+	Keynote      string `json:"keynote"`
 }
 
 type AreasKeys []*AreaKey

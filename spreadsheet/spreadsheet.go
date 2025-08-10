@@ -2,10 +2,8 @@ package spreadsheet
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 
-	"github.com/pkg/errors"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 
@@ -18,7 +16,7 @@ type Spreadsheet struct {
 
 	materials      models.Materials
 	areasMaterials models.AreasMaterials
-	// areasKeys      models.AreasKeys
+	areasKeys      models.AreasKeys
 	// relations      models.Relations
 }
 
@@ -34,15 +32,15 @@ func New(ctx context.Context, credentialsPath, spreadsheetID string) *Spreadshee
 	}
 }
 
-func (s *Spreadsheet) GetMaterials(ctx context.Context) ([]byte, error) {
-	if err := s.getMaterials(ctx); err != nil {
-		return nil, err
-	}
+// func (s *Spreadsheet) GetMaterials(ctx context.Context) ([]byte, error) {
+// 	if err := s.getMaterials(ctx); err != nil {
+// 		return nil, err
+// 	}
 
-	data, err := json.Marshal(s.materials)
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to marshal materials to JSON")
-	}
+// 	data, err := json.Marshal(s.materials)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "Unable to marshal materials to JSON")
+// 	}
 
-	return data, nil
-}
+// 	return data, nil
+// }
