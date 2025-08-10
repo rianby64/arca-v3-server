@@ -21,7 +21,7 @@ type Spreadsheet struct {
 	areas          models.Areas
 	areasMaterials models.AreasMaterials
 	areasKeys      models.AreasKeys
-	// relations      models.Relations
+	relations      models.Relations
 }
 
 func New(ctx context.Context, credentialsPath, spreadsheetID string) *Spreadsheet {
@@ -34,6 +34,34 @@ func New(ctx context.Context, credentialsPath, spreadsheetID string) *Spreadshee
 		client:        client,
 		spreadsheetID: spreadsheetID,
 	}
+}
+
+func (s *Spreadsheet) findArea(name string) (*models.Area, error) {
+	if s.areas == nil {
+		return nil, models.ErrUnavailable
+	}
+
+	for _, area := range s.areas {
+		if area.Name == name {
+			return area, nil
+		}
+	}
+
+	return nil, errors.Wrapf(models.ErrNotFound, "area %s", name)
+}
+
+func (s *Spreadsheet) findMaterial(name string) (*models.Material, error) {
+	if s.materials == nil {
+		return nil, models.ErrUnavailable
+	}
+
+	for _, material := range s.materials {
+		if material.Name == name {
+			return material, nil
+		}
+	}
+
+	return nil, errors.Wrapf(models.ErrNotFound, "material %s", name)
 }
 
 func (s *Spreadsheet) ReadAllTo(ctx context.Context, dst io.Writer) error {
@@ -57,12 +85,18 @@ func (s *Spreadsheet) ReadAllTo(ctx context.Context, dst io.Writer) error {
 			return errors.Wrap(err, "Unable to read areas keys from spreadsheet")
 		}
 	}
+	if s.relations == nil {
+		if err := s.getAreasRelations(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read areas relations from spreadsheet")
+		}
+	}
 
 	allEntries := map[string]any{
 		"materials":       s.materials,
 		"areas":           s.areas,
 		"areas_materials": s.areasMaterials,
 		"areas_keys":      s.areasKeys,
+		"relations":       s.relations,
 	}
 
 	if err := json.NewEncoder(dst).Encode(allEntries); err != nil {
