@@ -2,6 +2,8 @@ package spreadsheet
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 
 	"github.com/pkg/errors"
 
@@ -24,19 +26,14 @@ func (s *Spreadsheet) getAreas(ctx context.Context) error {
 	areas := make(models.Areas, 0, len(result.Sheets[0].Data[0].RowData))
 	rowsFromSpreadsheet := result.Sheets[0].Data[0].RowData
 
-	for _, row := range rowsFromSpreadsheet {
-		var (
-			areaValue *string
-
-			area string
-		)
-
-		if len(row.Values) > 0 && row.Values[0] != nil && row.Values[0].EffectiveValue != nil && row.Values[0].EffectiveValue.StringValue != nil {
-			areaValue = row.Values[0].EffectiveValue.StringValue
+	for index, row := range rowsFromSpreadsheet {
+		area, err := readStringByCellIndex(row, 0)
+		if err != nil {
+			return errors.Wrapf(err, "error reading area name in row %v", index)
 		}
 
-		if areaValue != nil {
-			area = *areaValue
+		if area == "" {
+			return errors.Wrapf(models.ErrInvalid, "empty area name in row %v", index)
 		}
 
 		areas = append(areas, &models.Area{
@@ -45,6 +42,20 @@ func (s *Spreadsheet) getAreas(ctx context.Context) error {
 	}
 
 	s.areas = areas
+
+	return nil
+}
+
+func (s *Spreadsheet) ReadAreasTo(ctx context.Context, dst io.Writer) error {
+	if s.areas == nil {
+		if err := s.getAreas(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read areas from spreadsheet")
+		}
+	}
+
+	if err := json.NewEncoder(dst).Encode(s.areas); err != nil {
+		return errors.Wrap(err, "Unable to encode areas to JSON")
+	}
 
 	return nil
 }

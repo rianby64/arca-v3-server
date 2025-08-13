@@ -2,6 +2,8 @@ package spreadsheet
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 
 	"github.com/pkg/errors"
 
@@ -30,34 +32,31 @@ func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
 	areasMaterialsMap := map[string]*models.AreaMaterials{}
 	rowsFromSpreadsheet := result.Sheets[0].Data[0].RowData
 
-	for _, row := range rowsFromSpreadsheet {
-		var (
-			areaValue     *string
-			materialValue *string
-
-			material *models.Material
-			area     *models.Area
-		)
-
-		if len(row.Values) > 0 && row.Values[0] != nil && row.Values[0].EffectiveValue != nil && row.Values[0].EffectiveValue.StringValue != nil {
-			areaValue = row.Values[0].EffectiveValue.StringValue
+	for index, row := range rowsFromSpreadsheet {
+		areaValue, err := readStringByCellIndex(row, 0)
+		if err != nil {
+			return errors.Wrapf(err, "error reading area name in row %v", index)
 		}
 
-		if len(row.Values) > 1 && row.Values[1] != nil && row.Values[1].EffectiveValue != nil && row.Values[1].EffectiveValue.StringValue != nil {
-			materialValue = row.Values[1].EffectiveValue.StringValue
+		if areaValue == "" {
+			return errors.Wrapf(models.ErrInvalid, "empty area name in row %v", index)
 		}
 
-		if materialValue != nil {
-			materialFound, err := s.findMaterial(*materialValue)
-			if err != nil {
-				return err
-			}
-			material = materialFound
+		materialValue, err := readStringByCellIndex(row, 1)
+		if err != nil {
+			return errors.Wrapf(err, "error reading material name in row %v", index)
 		}
 
-		if areaValue != nil {
-			area = &models.Area{Name: *areaValue}
+		if materialValue == "" {
+			return errors.Wrapf(models.ErrInvalid, "empty material name in row %v", index)
 		}
+
+		material, err := s.findMaterial(materialValue)
+		if err != nil {
+			return errors.Wrapf(err, "error finding material %s in row %v", materialValue, index)
+		}
+
+		area := &models.Area{Name: areaValue}
 
 		if areaMaterial, ok := areasMaterialsMap[area.Name]; ok {
 			areaMaterial.Materials = append(areaMaterial.Materials, material)
@@ -79,6 +78,20 @@ func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
 	}
 
 	s.areasMaterials = areasMaterials
+
+	return nil
+}
+
+func (s *Spreadsheet) ReadAreasMaterialsTo(ctx context.Context, dst io.Writer) error {
+	if s.areasMaterials == nil {
+		if err := s.getAreasMaterials(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read areas materials from spreadsheet")
+		}
+	}
+
+	if err := json.NewEncoder(dst).Encode(s.areasMaterials); err != nil {
+		return errors.Wrap(err, "Unable to encode areas materials to JSON")
+	}
 
 	return nil
 }

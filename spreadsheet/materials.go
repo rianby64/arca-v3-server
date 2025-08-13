@@ -2,6 +2,8 @@ package spreadsheet
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 
 	"github.com/pkg/errors"
 
@@ -9,7 +11,7 @@ import (
 )
 
 func (s *Spreadsheet) getMaterials(ctx context.Context) error {
-	ranges := "MATERIALS!A2:O"
+	ranges := "MATERIALS!A2:M"
 	result, err := s.client.Spreadsheets.
 		Get(s.spreadsheetID).
 		Context(ctx).
@@ -24,57 +26,29 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 	materials := make(models.Materials, 0, len(result.Sheets[0].Data[0].RowData))
 	rowsFromSpreadsheet := result.Sheets[0].Data[0].RowData
 
-	for _, row := range rowsFromSpreadsheet {
-		var (
-			materialValue     *string
-			keynoteValue      *string
-			thicknessValue    *float64
-			isStructuralValue *bool
-
-			material     string
-			keynote      string
-			thickness    float64
-			isStructural bool
-		)
-
-		if len(row.Values) > 0 && row.Values[0] != nil && row.Values[0].EffectiveValue != nil && row.Values[0].EffectiveValue.StringValue != nil {
-			materialValue = row.Values[0].EffectiveValue.StringValue
+	for index, row := range rowsFromSpreadsheet {
+		material, err := readStringByCellIndex(row, 1)
+		if err != nil {
+			return errors.Wrapf(err, "error reading material name in row %v", index)
 		}
 
-		if len(row.Values) > 1 && row.Values[1] != nil && row.Values[1].EffectiveValue != nil && row.Values[1].EffectiveValue.NumberValue != nil {
-			thicknessValue = row.Values[1].EffectiveValue.NumberValue
+		if material == "" {
+			return errors.Wrapf(models.ErrNoData, "empty material name in row %v", index)
 		}
 
-		if len(row.Values) > 2 && row.Values[2] != nil && row.Values[2].EffectiveValue != nil && row.Values[2].EffectiveValue.BoolValue != nil {
-			isStructuralValue = row.Values[2].EffectiveValue.BoolValue
+		thickness, err := readNumberByCellIndex(row, 2)
+		if err != nil {
+			return errors.Wrapf(err, "error reading material thickness in row %v", index)
 		}
 
-		if len(row.Values) > 3 && row.Values[3] != nil && row.Values[3].EffectiveValue != nil && row.Values[3].EffectiveValue.StringValue != nil {
-			keynoteValue = row.Values[3].EffectiveValue.StringValue
+		isStructural, err := readBoolByCellIndex(row, 0)
+		if err != nil {
+			return errors.Wrapf(err, "error reading isStructural in row %v", index)
 		}
 
-		if materialValue != nil {
-			material = *materialValue
-		} else {
-			material = ""
-		}
-
-		if keynoteValue != nil {
-			keynote = *keynoteValue
-		} else {
-			keynote = ""
-		}
-
-		if thicknessValue != nil {
-			thickness = *thicknessValue
-		} else {
-			thickness = 0.0
-		}
-
-		if isStructuralValue != nil {
-			isStructural = *isStructuralValue
-		} else {
-			isStructural = false
+		keynote, err := readStringByCellIndex(row, 9)
+		if err != nil {
+			return errors.Wrapf(err, "error reading keynote in row %v", index)
 		}
 
 		materials = append(materials, &models.Material{
@@ -86,6 +60,20 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 	}
 
 	s.materials = materials
+
+	return nil
+}
+
+func (s *Spreadsheet) ReadMaterialsTo(ctx context.Context, dst io.Writer) error {
+	if s.materials == nil {
+		if err := s.getMaterials(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read materials from spreadsheet")
+		}
+	}
+
+	if err := json.NewEncoder(dst).Encode(s.materials); err != nil {
+		return errors.Wrap(err, "Unable to encode materials to JSON")
+	}
 
 	return nil
 }

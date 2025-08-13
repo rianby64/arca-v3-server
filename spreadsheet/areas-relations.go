@@ -2,6 +2,8 @@ package spreadsheet
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 
 	"github.com/pkg/errors"
 
@@ -20,7 +22,7 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 		}
 	}
 
-	ranges := "AREAS_RELATIONS!A2:D"
+	ranges := "AREAS_RELATIONS!A2:E"
 	result, err := s.client.Spreadsheets.
 		Get(s.spreadsheetID).
 		Context(ctx).
@@ -32,75 +34,79 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 		return errors.Wrapf(err, "Unable to retrieve spreadsheet %s", ranges)
 	}
 
-	areasKeys := make(models.Relations, 0, len(result.Sheets[0].Data[0].RowData))
+	areasKeys := make(models.AreasRelations, 0, len(result.Sheets[0].Data[0].RowData))
 	rowsFromSpreadsheet := result.Sheets[0].Data[0].RowData
 
-	for _, row := range rowsFromSpreadsheet {
-		var (
-			areaInternalValue *string
-			areaExternalValue *string
-			materialValue     *string
-			sameAreaValue     *bool
-
-			areaInternal *models.Area
-			areaExternal *models.Area
-			material     *models.Material
-			sameArea     bool
-		)
-
-		if len(row.Values) > 0 && row.Values[0] != nil && row.Values[0].EffectiveValue != nil && row.Values[0].EffectiveValue.StringValue != nil {
-			areaInternalValue = row.Values[0].EffectiveValue.StringValue
+	for index, row := range rowsFromSpreadsheet {
+		areaInternalValue, err := readStringByCellIndex(row, 2)
+		if err != nil {
+			return errors.Wrapf(err, "error reading area internal name in row %v", index)
 		}
 
-		if len(row.Values) > 1 && row.Values[1] != nil && row.Values[1].EffectiveValue != nil && row.Values[1].EffectiveValue.StringValue != nil {
-			areaExternalValue = row.Values[1].EffectiveValue.StringValue
+		if areaInternalValue == "" {
+			return errors.Wrapf(models.ErrInvalid, "empty area internal name in row %v", index)
 		}
 
-		if len(row.Values) > 2 && row.Values[2] != nil && row.Values[2].EffectiveValue != nil && row.Values[2].EffectiveValue.StringValue != nil {
-			materialValue = row.Values[2].EffectiveValue.StringValue
+		areaInternal, err := s.findArea(areaInternalValue)
+		if err != nil {
+			return errors.Wrapf(err, "error finding area %s in row %v", areaInternalValue, index)
 		}
 
-		if len(row.Values) > 3 && row.Values[3] != nil && row.Values[3].EffectiveValue != nil && row.Values[3].EffectiveValue.BoolValue != nil {
-			sameAreaValue = row.Values[3].EffectiveValue.BoolValue
+		areaExternalValue, err := readStringByCellIndex(row, 3)
+		if err != nil {
+			return errors.Wrapf(err, "error reading area external name in row %v", index)
 		}
 
-		if areaInternalValue != nil {
-			area, err := s.findArea(*areaInternalValue)
-			if err != nil {
-				return err
-			}
-			areaInternal = area
+		if areaExternalValue == "" {
+			return errors.Wrapf(models.ErrInvalid, "empty area external name in row %v", index)
 		}
 
-		if areaExternalValue != nil {
-			area, err := s.findArea(*areaExternalValue)
-			if err != nil {
-				return err
-			}
-			areaExternal = area
+		areaExternal, err := s.findArea(areaExternalValue)
+		if err != nil {
+			return errors.Wrapf(err, "error finding area %s in row %v", areaExternalValue, index)
 		}
 
-		if materialValue != nil {
-			materialFound, err := s.findMaterial(*materialValue)
-			if err != nil {
-				return err
-			}
-			material = materialFound
+		materialValue, _ := readStringByCellIndex(row, 4)
+
+		material, err := s.findMaterial(materialValue)
+		if !errors.Is(err, models.ErrInvalid) && err != nil {
+			return errors.Wrapf(err, "error finding material %s in row %v", materialValue, index)
 		}
 
-		if sameAreaValue != nil {
-			sameArea = *sameAreaValue
+		sameArea, err := readBoolByCellIndex(row, 0)
+		if err != nil {
+			return errors.Wrapf(err, "error reading sameArea in row %v", index)
 		}
 
-		areasKeys = append(areasKeys, &models.Relation{
+		wallKeynote, err := readStringByCellIndex(row, 1)
+		if !errors.Is(err, models.ErrNoData) && err != nil {
+			return errors.Wrapf(err, "error reading wallKeynote in row %v", index)
+		}
+
+		areasKeys = append(areasKeys, &models.AreaRelation{
 			AreaInternal: areaInternal,
 			AreaExternal: areaExternal,
 			Material:     material,
 			SameArea:     sameArea,
+			WallKeynote:  wallKeynote,
 		})
 	}
 
 	s.relations = areasKeys
+
+	return nil
+}
+
+func (s *Spreadsheet) ReadAreasRelationsTo(ctx context.Context, dst io.Writer) error {
+	if s.relations == nil {
+		if err := s.getAreasRelations(ctx); err != nil {
+			return errors.Wrap(err, "Unable to read areas relations from spreadsheet")
+		}
+	}
+
+	if err := json.NewEncoder(dst).Encode(s.relations); err != nil {
+		return errors.Wrap(err, "Unable to encode areas relations to JSON")
+	}
 
 	return nil
 }
