@@ -40,7 +40,12 @@ func main() {
 	defer cancelShutdown()
 
 	log.Println("Received shutdown signal, shutting down server...")
-	server.Shutdown(ctxShutdown)
+	if err := server.Shutdown(ctxShutdown); err != nil {
+		log.Printf("Error during server shutdown: %v", err)
+
+		return
+	}
+
 	log.Println("Server gracefully stopped")
 }
 
@@ -50,7 +55,11 @@ func launchServer(env *config.Config, spreadsheet *spreadsheet.Spreadsheet) *htt
 	router.Use(middleware.Recoverer)
 
 	wallsHandlers := handlers.NewWallsHandler(spreadsheet)
-	router.Get("/api/v1/read_all", wallsHandlers.ReadAll)
+	router.Get("/api/v1/all", wallsHandlers.ReadAll)
+	router.Get("/api/v1/areas_materials", wallsHandlers.ReadAreasMaterialsTo)
+	router.Get("/api/v1/areas_relations", wallsHandlers.ReadAreasRelationsTo)
+	router.Get("/api/v1/areas", wallsHandlers.ReadAreasTo)
+	router.Get("/api/v1/materials", wallsHandlers.ReadMaterialsTo)
 
 	server := &http.Server{
 		Addr:    env.ServerAddress,
