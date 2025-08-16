@@ -3,13 +3,17 @@ package handlers
 import (
 	"context"
 	"io"
+	"log"
 	"net/http"
 )
 
 type Spreadsheet interface {
 	ReadAllTo(ctx context.Context, dst io.Writer) error
 	ReadAreasMaterialsTo(ctx context.Context, dst io.Writer) error
+
 	ReadAreasRelationsTo(ctx context.Context, dst io.Writer) error
+	UploadAreasRelationsFrom(ctx context.Context, dst io.Reader) error
+
 	ReadAreasTo(ctx context.Context, dst io.Writer) error
 	ReadMaterialsTo(ctx context.Context, dst io.Writer) error
 }
@@ -42,6 +46,17 @@ func (h *WallsHandler) ReadAreasMaterialsTo(writer http.ResponseWriter, request 
 
 func (h *WallsHandler) ReadAreasRelationsTo(writer http.ResponseWriter, request *http.Request) {
 	if err := h.spreadsheet.ReadAreasRelationsTo(request.Context(), writer); err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+}
+
+func (h *WallsHandler) UploadAreasRelationsFrom(writer http.ResponseWriter, request *http.Request) {
+	defer request.Body.Close()
+
+	if err := h.spreadsheet.UploadAreasRelationsFrom(request.Context(), request.Body); err != nil {
+		log.Printf("Error uploading areas relations: %v", err)
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 
 		return

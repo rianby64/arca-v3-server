@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"google.golang.org/api/sheets/v4"
 
 	"arca3/models"
 )
@@ -106,6 +107,76 @@ func (s *Spreadsheet) ReadAreasRelationsTo(ctx context.Context, dst io.Writer) e
 
 	if err := json.NewEncoder(dst).Encode(s.relations); err != nil {
 		return errors.Wrap(err, "Unable to encode areas relations to JSON")
+	}
+
+	return nil
+}
+
+func (s *Spreadsheet) UploadAreasRelationsFrom(ctx context.Context, src io.Reader) error {
+	var areasRelations models.AreasRelations
+
+	if err := json.NewDecoder(src).Decode(&areasRelations); err != nil {
+		return errors.Wrap(err, "Unable to decode areas relations from JSON")
+	}
+
+	if len(areasRelations) == 0 {
+		return errors.Wrap(models.ErrInvalid, "empty areas relations")
+	}
+
+	if err := s.uploadAreasRelations(ctx, areasRelations); err != nil {
+		return errors.Wrap(err, "Unable to upload areas relations to spreadsheet")
+	}
+
+	return nil
+}
+
+func (s *Spreadsheet) uploadAreasRelations(ctx context.Context, areasRelations models.AreasRelations) error {
+	requests := []*sheets.Request{}
+
+	for index, relation := range areasRelations {
+		var (
+			areaInternal, areaExternal *string
+		)
+
+		if relation.AreaInternal != nil {
+			areaInternal = &relation.AreaInternal.Name
+		}
+
+		if relation.AreaExternal != nil {
+			areaExternal = &relation.AreaExternal.Name
+		}
+
+		requests = append(requests, &sheets.Request{
+			UpdateCells: &sheets.UpdateCellsRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          1715124245,
+					StartRowIndex:    int64(index) + 1,
+					EndRowIndex:      int64(index) + 2,
+					StartColumnIndex: 0,
+					EndColumnIndex:   3,
+				},
+				Rows: []*sheets.RowData{
+					{
+						Values: []*sheets.CellData{
+							{UserEnteredValue: &sheets.ExtendedValue{BoolValue: &relation.SameArea}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: areaInternal}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: areaExternal}},
+						},
+					},
+				},
+			},
+		})
+	}
+
+	if _, err := s.client.Spreadsheets.BatchUpdate(
+		s.spreadsheetID,
+		&sheets.BatchUpdateSpreadsheetRequest{
+			Requests: requests,
+		}).
+		Context(ctx).
+		Do(); err != nil {
+		return err
 	}
 
 	return nil
