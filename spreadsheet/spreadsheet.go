@@ -17,7 +17,7 @@ type Spreadsheet struct {
 	client        *sheets.Service
 	spreadsheetID string
 
-	materials      models.Materials
+	materials      models.WallMaterials
 	areas          models.Areas
 	areasMaterials models.AreasMaterials
 	relations      models.AreasRelations
@@ -115,7 +115,7 @@ func (s *Spreadsheet) findArea(name string) (*models.Area, error) {
 	return nil, errors.Wrapf(models.ErrNotFound, "area %s", name)
 }
 
-func (s *Spreadsheet) findMaterial(name string) (*models.Material, error) {
+func (s *Spreadsheet) findMaterial(name string) (*models.WallMaterial, error) {
 	if name == "" {
 		return nil, errors.Wrapf(models.ErrInvalid, "empty material name")
 	}

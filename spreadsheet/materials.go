@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"google.golang.org/api/sheets/v4"
 
 	"arca3/models"
 )
@@ -23,7 +24,7 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 		return errors.Wrapf(err, "Unable to retrieve spreadsheet %s", ranges)
 	}
 
-	materials := make(models.Materials, 0, len(result.Sheets[0].Data[0].RowData))
+	materials := make(models.WallMaterials, 0, len(result.Sheets[0].Data[0].RowData))
 	rowsFromSpreadsheet := result.Sheets[0].Data[0].RowData
 
 	for index, row := range rowsFromSpreadsheet {
@@ -51,7 +52,7 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 			return errors.Wrapf(err, "error reading keynote in row %v", index)
 		}
 
-		materials = append(materials, &models.Material{
+		materials = append(materials, &models.WallMaterial{
 			Name:         material,
 			Thickness:    thickness,
 			Keynote:      keynote,
@@ -73,6 +74,73 @@ func (s *Spreadsheet) ReadMaterialsTo(ctx context.Context, dst io.Writer) error 
 
 	if err := json.NewEncoder(dst).Encode(s.materials); err != nil {
 		return errors.Wrap(err, "Unable to encode materials to JSON")
+	}
+
+	return nil
+}
+
+func (s *Spreadsheet) UploadMaterialsFrom(ctx context.Context, src io.Reader) error {
+	var areasRelations models.Materials
+
+	if err := json.NewDecoder(src).Decode(&areasRelations); err != nil {
+		return errors.Wrap(err, "Unable to decode areas relations from JSON")
+	}
+
+	if len(areasRelations) == 0 {
+		return errors.Wrap(models.ErrInvalid, "empty areas relations")
+	}
+
+	if err := s.uploadMaterials(ctx, areasRelations); err != nil {
+		return errors.Wrap(err, "Unable to upload areas relations to spreadsheet")
+	}
+
+	return nil
+}
+
+func (s *Spreadsheet) uploadMaterials(ctx context.Context, materials models.Materials) error {
+	requests := []*sheets.Request{}
+
+	for index, material := range materials {
+		requests = append(requests, &sheets.Request{
+			UpdateCells: &sheets.UpdateCellsRequest{
+				Fields: "*",
+				Range: &sheets.GridRange{
+					SheetId:          1466546092,
+					StartRowIndex:    int64(index) + 1,
+					EndRowIndex:      int64(index) + 2,
+					StartColumnIndex: 0,
+					EndColumnIndex:   12,
+				},
+				Rows: []*sheets.RowData{
+					{
+						Values: []*sheets.CellData{
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.Name}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.MaterialCategory}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.CutBackgroundPatternColor}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.CutBackgroundPatternId}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.CutForegroundPatternColor}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.CutForegroundPatternId}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.SurfaceForegroundPatternColor}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.SurfaceForegroundPatternId}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.Mark}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.Keynote}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.Description}},
+							{UserEnteredValue: &sheets.ExtendedValue{StringValue: material.Manufacturer}},
+						},
+					},
+				},
+			},
+		})
+	}
+
+	if _, err := s.client.Spreadsheets.BatchUpdate(
+		s.spreadsheetID,
+		&sheets.BatchUpdateSpreadsheetRequest{
+			Requests: requests,
+		}).
+		Context(ctx).
+		Do(); err != nil {
+		return err
 	}
 
 	return nil

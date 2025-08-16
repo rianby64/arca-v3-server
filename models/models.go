@@ -14,13 +14,30 @@ const (
 )
 
 type Material struct {
+	Name                          *string
+	MaterialCategory              *string
+	CutBackgroundPatternColor     *string
+	CutBackgroundPatternId        *string
+	CutForegroundPatternColor     *string
+	CutForegroundPatternId        *string
+	SurfaceForegroundPatternColor *string
+	SurfaceForegroundPatternId    *string
+	Mark                          *string
+	Keynote                       *string
+	Description                   *string
+	Manufacturer                  *string
+}
+
+type Materials []*Material
+
+type WallMaterial struct {
 	Name         string
 	Thickness    float64
 	Keynote      string
 	IsStructural bool
 }
 
-type Materials []*Material
+type WallMaterials []*WallMaterial
 
 type Area struct {
 	Name string
@@ -30,7 +47,7 @@ type Areas []*Area
 
 type AreaMaterials struct {
 	Area      *Area
-	Materials Materials
+	Materials WallMaterials
 }
 
 type AreasMaterials []*AreaMaterials
@@ -38,7 +55,7 @@ type AreasMaterials []*AreaMaterials
 type AreaRelation struct {
 	AreaInternal *Area
 	AreaExternal *Area
-	Material     *Material
+	Material     *WallMaterial
 	WallKeynote  string
 	SameArea     bool
 }

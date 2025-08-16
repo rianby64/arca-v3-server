@@ -58,7 +58,9 @@ func launchServer(env *config.Config, spreadsheet *spreadsheet.Spreadsheet) *htt
 	router.Get("/api/v1/all", wallsHandlers.ReadAll)
 	router.Get("/api/v1/areas_materials", wallsHandlers.ReadAreasMaterialsTo)
 	router.Get("/api/v1/areas", wallsHandlers.ReadAreasTo)
+
 	router.Get("/api/v1/materials", wallsHandlers.ReadMaterialsTo)
+	router.Post("/api/v1/materials/upload", wallsHandlers.UploadMaterialsFrom)
 
 	router.Get("/api/v1/areas_relations", wallsHandlers.ReadAreasRelationsTo)
 	router.Post("/api/v1/areas_relations/upload", wallsHandlers.UploadAreasRelationsFrom)
