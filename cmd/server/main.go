@@ -55,7 +55,7 @@ func launchServer(env *config.Config, spreadsheet *spreadsheet.Spreadsheet) *htt
 	router.Use(middleware.Recoverer)
 
 	wallsHandlers := handlers.NewWallsHandler(spreadsheet)
-	router.Get("/api/v1/reset", wallsHandlers.ResetData)
+	router.Post("/api/v1/reset", wallsHandlers.ResetData)
 	router.Get("/api/v1/areas_materials", wallsHandlers.ReadAreasMaterialsTo)
 
 	router.Get("/api/v1/areas", wallsHandlers.ReadAreasTo)
