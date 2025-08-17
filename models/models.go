@@ -55,7 +55,7 @@ type AreasMaterials []*AreaMaterials
 type AreaRelation struct {
 	AreaInternal *Area
 	AreaExternal *Area
-	Material     *WallMaterial
+	Central      *WallMaterial
 	WallKeynote  *string
 	SameArea     bool
 }

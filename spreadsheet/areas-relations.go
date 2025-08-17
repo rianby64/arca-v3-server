@@ -82,7 +82,7 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 		areasKeys = append(areasKeys, &models.AreaRelation{
 			AreaInternal: areaInternal,
 			AreaExternal: areaExternal,
-			Material:     material,
+			Central:      material,
 			SameArea:     sameArea,
 			WallKeynote:  readPtrStringByCellIndex(row, 4),
 		})
