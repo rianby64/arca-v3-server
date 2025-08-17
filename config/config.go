@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	version = "0.0.9"
+	version = "0.0.12"
 )
 
 type Config struct {

@@ -67,7 +67,7 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 		}
 
 		materialValue := readPtrStringByCellIndex(row, 3)
-		if materialValue != nil && *materialValue == "" {
+		if materialValue != nil && *materialValue != "" {
 			material, err = s.findMaterial(*materialValue)
 			if !errors.Is(err, models.ErrInvalid) && err != nil {
 				return errors.Wrapf(err, "error finding material %s in row %v", *materialValue, index)

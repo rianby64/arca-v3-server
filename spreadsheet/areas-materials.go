@@ -11,6 +11,12 @@ import (
 )
 
 func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
+	if s.areas == nil {
+		if err := s.getAreas(ctx); err != nil {
+			return errors.Wrap(err, "Unable to get areas")
+		}
+	}
+
 	if s.materials == nil {
 		if err := s.getMaterials(ctx); err != nil {
 			return errors.Wrap(err, "Unable to get materials")
@@ -33,30 +39,27 @@ func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
 	rowsFromSpreadsheet := result.Sheets[0].Data[0].RowData
 
 	for index, row := range rowsFromSpreadsheet {
+		var (
+			material *models.WallMaterial
+		)
+
 		areaValue, err := readStringByCellIndex(row, 0)
 		if err != nil {
 			return errors.Wrapf(err, "error reading area name in row %v", index)
 		}
 
-		if areaValue == "" {
-			return errors.Wrapf(models.ErrInvalid, "empty area name in row %v", index)
-		}
-
-		materialValue, err := readStringByCellIndex(row, 1)
+		area, err := s.findArea(areaValue)
 		if err != nil {
-			return errors.Wrapf(err, "error reading material name in row %v", index)
+			return errors.Wrapf(err, "error finding area %s in row %v", areaValue, index)
 		}
 
-		if materialValue == "" {
-			return errors.Wrapf(models.ErrInvalid, "empty material name in row %v", index)
+		materialValue := readPtrStringByCellIndex(row, 1)
+		if materialValue != nil && *materialValue != "" {
+			material, err = s.findMaterial(*materialValue)
+			if err != nil {
+				return errors.Wrapf(err, "error finding material %s in row %v", *materialValue, index)
+			}
 		}
-
-		material, err := s.findMaterial(materialValue)
-		if err != nil {
-			return errors.Wrapf(err, "error finding material %s in row %v", materialValue, index)
-		}
-
-		area := &models.Area{Name: areaValue}
 
 		if areaMaterial, ok := areasMaterialsMap[area.Name]; ok {
 			areaMaterial.Materials = append(areaMaterial.Materials, material)
