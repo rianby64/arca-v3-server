@@ -2,8 +2,6 @@ package spreadsheet
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"log"
 
 	"github.com/pkg/errors"
@@ -37,6 +35,13 @@ func New(ctx context.Context, credentialsPath, spreadsheetID string) *Spreadshee
 		client:        client,
 		spreadsheetID: spreadsheetID,
 	}
+}
+
+func (s *Spreadsheet) ResetData() {
+	s.materials = nil
+	s.areas = nil
+	s.areasMaterials = nil
+	s.relations = nil
 }
 
 func readPtrStringByCellIndex(row *sheets.RowData, index int) *string {
@@ -159,40 +164,4 @@ func (s *Spreadsheet) findMaterial(name string) (*models.WallMaterial, error) {
 	}
 
 	return nil, errors.Wrapf(models.ErrNotFound, "material %s", name)
-}
-
-func (s *Spreadsheet) ReadAllTo(ctx context.Context, dst io.Writer) error {
-	if s.materials == nil {
-		if err := s.getMaterials(ctx); err != nil {
-			return errors.Wrap(err, "Unable to read materials from spreadsheet")
-		}
-	}
-	if s.areas == nil {
-		if err := s.getAreas(ctx); err != nil {
-			return errors.Wrap(err, "Unable to read areas from spreadsheet")
-		}
-	}
-	if s.areasMaterials == nil {
-		if err := s.getAreasMaterials(ctx); err != nil {
-			return errors.Wrap(err, "Unable to read areas materials from spreadsheet")
-		}
-	}
-	if s.relations == nil {
-		if err := s.getAreasRelations(ctx); err != nil {
-			return errors.Wrap(err, "Unable to read areas relations from spreadsheet")
-		}
-	}
-
-	allEntries := map[string]any{
-		"Materials":      s.materials,
-		"Areas":          s.areas,
-		"AreasMaterials": s.areasMaterials,
-		"Relations":      s.relations,
-	}
-
-	if err := json.NewEncoder(dst).Encode(allEntries); err != nil {
-		return errors.Wrap(err, "Unable to encode all entries to JSON")
-	}
-
-	return nil
 }

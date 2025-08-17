@@ -8,7 +8,8 @@ import (
 )
 
 type Spreadsheet interface {
-	ReadAllTo(ctx context.Context, dst io.Writer) error
+	ResetData()
+
 	ReadAreasMaterialsTo(ctx context.Context, dst io.Writer) error
 
 	ReadAreasRelationsTo(ctx context.Context, dst io.Writer) error
@@ -31,12 +32,8 @@ func NewWallsHandler(spreadsheet Spreadsheet) *WallsHandler {
 	}
 }
 
-func (h *WallsHandler) ReadAll(writer http.ResponseWriter, request *http.Request) {
-	if err := h.spreadsheet.ReadAllTo(request.Context(), writer); err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-
-		return
-	}
+func (h *WallsHandler) ResetData(writer http.ResponseWriter, request *http.Request) {
+	h.spreadsheet.ResetData()
 }
 
 func (h *WallsHandler) ReadAreasMaterialsTo(writer http.ResponseWriter, request *http.Request) {
