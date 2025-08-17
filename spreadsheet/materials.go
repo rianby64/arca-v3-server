@@ -17,7 +17,7 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 		Get(s.spreadsheetID).
 		Context(ctx).
 		Ranges(ranges).
-		Fields("*").
+		Fields(effectiveValue).
 		IncludeGridData(true).
 		Do()
 	if err != nil {

@@ -13,6 +13,10 @@ import (
 	"arca3/models"
 )
 
+const (
+	effectiveValue = "sheets/data/rowData/values/effectiveValue"
+)
+
 type Spreadsheet struct {
 	client        *sheets.Service
 	spreadsheetID string

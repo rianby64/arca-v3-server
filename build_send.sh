@@ -8,7 +8,7 @@ fi
 
 echo "Build successful, uploading to server..."
 
-scp server livekit-1:~/arca-v3/.
+scp server livekit-1:~/arca-v3/pre_server
 if [ $? -ne 0 ]; then
   echo "Failed to copy server binary to livekit-1"
   exit 1
