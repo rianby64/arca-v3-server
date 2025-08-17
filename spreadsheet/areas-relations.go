@@ -39,7 +39,12 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 	rowsFromSpreadsheet := result.Sheets[0].Data[0].RowData
 
 	for index, row := range rowsFromSpreadsheet {
-		areaInternalValue, err := readStringByCellIndex(row, 2)
+		var (
+			areaExternal *models.Area
+			material     *models.WallMaterial
+		)
+
+		areaInternalValue, err := readStringByCellIndex(row, 1)
 		if err != nil {
 			return errors.Wrapf(err, "error reading area internal name in row %v", index)
 		}
@@ -53,25 +58,20 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 			return errors.Wrapf(err, "error finding area %s in row %v", areaInternalValue, index)
 		}
 
-		areaExternalValue, err := readStringByCellIndex(row, 3)
-		if err != nil {
-			return errors.Wrapf(err, "error reading area external name in row %v", index)
+		areaExternalValue := readPtrStringByCellIndex(row, 2)
+		if areaExternalValue != nil && *areaExternalValue != "" {
+			areaExternal, err = s.findArea(*areaExternalValue)
+			if err != nil {
+				return errors.Wrapf(err, "error finding area %s in row %v", *areaExternalValue, index)
+			}
 		}
 
-		if areaExternalValue == "" {
-			return errors.Wrapf(models.ErrInvalid, "empty area external name in row %v", index)
-		}
-
-		areaExternal, err := s.findArea(areaExternalValue)
-		if err != nil {
-			return errors.Wrapf(err, "error finding area %s in row %v", areaExternalValue, index)
-		}
-
-		materialValue, _ := readStringByCellIndex(row, 4)
-
-		material, err := s.findMaterial(materialValue)
-		if !errors.Is(err, models.ErrInvalid) && err != nil {
-			return errors.Wrapf(err, "error finding material %s in row %v", materialValue, index)
+		materialValue := readPtrStringByCellIndex(row, 3)
+		if materialValue != nil && *materialValue == "" {
+			material, err = s.findMaterial(*materialValue)
+			if !errors.Is(err, models.ErrInvalid) && err != nil {
+				return errors.Wrapf(err, "error finding material %s in row %v", *materialValue, index)
+			}
 		}
 
 		sameArea, err := readBoolByCellIndex(row, 0)
@@ -79,17 +79,12 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 			return errors.Wrapf(err, "error reading sameArea in row %v", index)
 		}
 
-		wallKeynote, err := readStringByCellIndex(row, 1)
-		if !errors.Is(err, models.ErrNoData) && err != nil {
-			return errors.Wrapf(err, "error reading wallKeynote in row %v", index)
-		}
-
 		areasKeys = append(areasKeys, &models.AreaRelation{
 			AreaInternal: areaInternal,
 			AreaExternal: areaExternal,
 			Material:     material,
 			SameArea:     sameArea,
-			WallKeynote:  wallKeynote,
+			WallKeynote:  readPtrStringByCellIndex(row, 4),
 		})
 	}
 
