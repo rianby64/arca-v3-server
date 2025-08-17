@@ -31,10 +31,10 @@ type Material struct {
 type Materials []*Material
 
 type WallMaterial struct {
-	Name         string
 	Thickness    float64
-	Keynote      string
+	Function     string
 	IsStructural bool
+	Material     *Material
 }
 
 type WallMaterials []*WallMaterial

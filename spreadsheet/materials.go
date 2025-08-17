@@ -28,7 +28,7 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 	rowsFromSpreadsheet := result.Sheets[0].Data[0].RowData
 
 	for index, row := range rowsFromSpreadsheet {
-		material, err := readStringByCellIndex(row, 1)
+		material, err := readStringByCellIndex(row, 3)
 		if err != nil {
 			return errors.Wrapf(err, "error reading material name in row %v", index)
 		}
@@ -37,7 +37,7 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 			return errors.Wrapf(models.ErrNoData, "empty material name in row %v", index)
 		}
 
-		thickness, err := readNumberByCellIndex(row, 2)
+		thickness, err := readNumberByCellIndex(row, 1)
 		if err != nil {
 			return errors.Wrapf(err, "error reading material thickness in row %v", index)
 		}
@@ -47,16 +47,29 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 			return errors.Wrapf(err, "error reading isStructural in row %v", index)
 		}
 
-		keynote, err := readStringByCellIndex(row, 9)
+		function, err := readStringByCellIndex(row, 2)
 		if err != nil {
-			return errors.Wrapf(err, "error reading keynote in row %v", index)
+			return errors.Wrapf(err, "error reading function in row %v", index)
 		}
 
 		materials = append(materials, &models.WallMaterial{
-			Name:         material,
 			Thickness:    thickness,
-			Keynote:      keynote,
+			Function:     function,
 			IsStructural: isStructural,
+			Material: &models.Material{
+				Name:                          &material,
+				MaterialCategory:              readPtrStringByCellIndex(row, 4),
+				CutBackgroundPatternColor:     readPtrStringByCellIndex(row, 5),
+				CutBackgroundPatternId:        readPtrStringByCellIndex(row, 6),
+				CutForegroundPatternColor:     readPtrStringByCellIndex(row, 7),
+				CutForegroundPatternId:        readPtrStringByCellIndex(row, 8),
+				SurfaceForegroundPatternColor: readPtrStringByCellIndex(row, 9),
+				SurfaceForegroundPatternId:    readPtrStringByCellIndex(row, 10),
+				Mark:                          readPtrStringByCellIndex(row, 11),
+				Keynote:                       readPtrStringByCellIndex(row, 12),
+				Description:                   readPtrStringByCellIndex(row, 13),
+				Manufacturer:                  readPtrStringByCellIndex(row, 14),
+			},
 		})
 	}
 

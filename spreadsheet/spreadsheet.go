@@ -35,6 +35,28 @@ func New(ctx context.Context, credentialsPath, spreadsheetID string) *Spreadshee
 	}
 }
 
+func readPtrStringByCellIndex(row *sheets.RowData, index int) *string {
+	if len(row.Values) <= index {
+		return nil
+	}
+
+	if row.Values[index] == nil {
+		return nil
+	}
+
+	if row.Values[index].EffectiveValue == nil {
+		return nil
+	}
+
+	if row.Values[index].EffectiveValue.StringValue == nil {
+		return nil
+	}
+
+	value := row.Values[index].EffectiveValue.StringValue
+
+	return value
+}
+
 func readStringByCellIndex(row *sheets.RowData, index int) (string, error) {
 	if len(row.Values) <= index {
 		return "", errors.Wrapf(models.ErrInvalid, "index %d out of range for row with %d values", index, len(row.Values))
@@ -125,7 +147,9 @@ func (s *Spreadsheet) findMaterial(name string) (*models.WallMaterial, error) {
 	}
 
 	for _, material := range s.materials {
-		if material.Name == name {
+		if material.Material != nil &&
+			material.Material.Name != nil &&
+			*material.Material.Name == name {
 			return material, nil
 		}
 	}
