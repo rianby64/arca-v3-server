@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 
 	"github.com/pkg/errors"
 	"google.golang.org/api/sheets/v4"
@@ -46,7 +47,9 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 
 		areaInternalValue, err := readStringByCellIndex(row, 1)
 		if err != nil {
-			return errors.Wrapf(err, "error reading area internal name in row %v", index)
+			log.Printf("Skipping row %v: %v", index, err)
+
+			break
 		}
 
 		if areaInternalValue == "" {

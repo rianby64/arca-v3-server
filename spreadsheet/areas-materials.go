@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 
 	"github.com/pkg/errors"
 
@@ -45,7 +46,9 @@ func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
 
 		areaValue, err := readStringByCellIndex(row, 0)
 		if err != nil {
-			return errors.Wrapf(err, "error reading area name in row %v", index)
+			log.Printf("Skipping row %v: %v", index, err)
+
+			break
 		}
 
 		area, err := s.findArea(areaValue)

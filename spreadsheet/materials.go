@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 
 	"github.com/pkg/errors"
 	"google.golang.org/api/sheets/v4"
@@ -30,7 +31,9 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 	for index, row := range rowsFromSpreadsheet {
 		material, err := readStringByCellIndex(row, 3)
 		if err != nil {
-			return errors.Wrapf(err, "error reading material name in row %v", index)
+			log.Printf("Skipping row %v: %v", index, err)
+
+			break
 		}
 
 		if material == "" {
