@@ -37,7 +37,7 @@ func (s *Spreadsheet) getAreas(ctx context.Context) error {
 		}
 
 		if area == "" {
-			return errors.Wrapf(models.ErrInvalid, "empty area name in row %v", index)
+			break
 		}
 
 		areas = append(areas, &models.Area{

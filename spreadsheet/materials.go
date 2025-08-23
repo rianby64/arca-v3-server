@@ -37,7 +37,7 @@ func (s *Spreadsheet) getMaterials(ctx context.Context) error {
 		}
 
 		if material == "" {
-			return errors.Wrapf(models.ErrNoData, "empty material name in row %v", index)
+			break
 		}
 
 		thickness, err := readNumberByCellIndex(row, 1)

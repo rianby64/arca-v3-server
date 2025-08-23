@@ -53,7 +53,7 @@ func (s *Spreadsheet) getAreasRelations(ctx context.Context) error {
 		}
 
 		if areaInternalValue == "" {
-			return errors.Wrapf(models.ErrInvalid, "empty area internal name in row %v", index)
+			break
 		}
 
 		areaInternal, err := s.findArea(areaInternalValue)

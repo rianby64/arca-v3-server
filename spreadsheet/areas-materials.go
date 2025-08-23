@@ -51,6 +51,10 @@ func (s *Spreadsheet) getAreasMaterials(ctx context.Context) error {
 			break
 		}
 
+		if areaValue == "" {
+			break
+		}
+
 		area, err := s.findArea(areaValue)
 		if err != nil {
 			return errors.Wrapf(err, "error finding area %s in row %v", areaValue, index)
